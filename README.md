@@ -58,8 +58,8 @@ and some way to boot up a Fedora CoreOS computer (or VM) from an Ignition file.
      "aws_secret_access_key" : "9Bf...",
      "user" : "myuser1", 
      "ssh_authorized_keys" : "ssh-rsa AAAAB3NzaC1yc2EA..." },
-
-{
+   
+   {
      "s3_endpoint" : "https://s3.example.com",
      "s3_bucket_name" : "some_bucket2", 
      "aws_access_key_id" : "5R2...",
@@ -68,7 +68,8 @@ and some way to boot up a Fedora CoreOS computer (or VM) from an Ignition file.
      "ssh_authorized_keys" : "ssh-rsa AAAAB3EvL..." }
    ]
    ```
-   (Multiple users can be installed from the same JSON file)
+   (Multiple users can be installed from the same JSON file).
+   
    To copy the file, run a command similar to
    ```
    scp install-sftp-users.json root@fcos:/srv/sftp_geesefs/install-sftp-users/trigger/
