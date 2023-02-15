@@ -1,0 +1,139 @@
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: root
+      ssh_authorized_keys:
+        - $MY_SSH_KEY
+    - name: core
+      ssh_authorized_keys:
+        - $MY_SSH_KEY
+  groups:
+    - name: sftpusers
+storage:
+  directories:
+    - path: /srv/sftp_geesefs
+      mode: 0755
+    - path: /srv/sftp_geesefs/chroot
+      mode: 0755
+    - path: /srv/sftp_geesefs/install-sftp-users
+      mode: 0700
+    - path: /srv/sftp_geesefs/install-sftp-users/trigger
+      mode: 0700
+    - path: /srv/sftp_geesefs/install-sftp-users/completed
+      mode: 0700
+    - path: /etc/ssh/extra_authorized_keys
+      mode: 0755
+  files:
+    - path: /etc/zincati/config.d/30-updates-strategy.toml
+      mode: 0444
+      contents:
+        local: 30-updates-strategy.toml
+    - path: /etc/ssh/sshd_config.d/sftp_geesefs.conf
+      mode: 0400
+      contents:
+        local: sftp_geesefs.conf
+    - path: /usr/local/bin/install-sftp-users.bash
+      mode: 0755
+      contents:
+        local: install-sftp-users.bash
+    - path: /usr/local/bin/mount-geesefs.bash
+      mode: 0755
+      contents:
+        local: mount-geesefs.bash
+systemd:
+  units:
+    - name: rpm-ostree-install-s3fs-fuse.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install s3fs-fuse
+        Wants=network-online.target
+        After=network-online.target
+        Before=zincati.service
+        ConditionPathExists=!/var/lib/%n.stamp
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive s3fs-fuse
+        ExecStart=/bin/touch /var/lib/%n.stamp
+        [Install]
+        WantedBy=multi-user.target
+    - name: geesefs@.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=mount geesefs
+        Wants=network-online.target
+        Requires=install-geesefs.service
+        After=network-online.target install-geesefs.service
+        Before=zincati.service
+        AssertPathIsDirectory=/srv/sftp_geesefs/chroot/%i/%i
+        AssertPathIsSymbolicLink=!/home/%i/s3_bucket_name
+        AssertFileNotEmpty=/home/%i/s3_bucket_name
+        AssertFileNotEmpty=/home/%i/s3_endpoint
+        AssertPathExists=/usr/local/bin/geesefs
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        User=%i
+        Group=%i
+        ExecStart=/usr/local/bin/mount-geesefs.bash
+        ExecStop=/bin/fusermount -u /srv/sftp_geesefs/chroot/%i/%i
+        [Install]
+        WantedBy=default.target
+    - name: install-geesefs.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install geesefs
+        Wants=network-online.target
+        After=network-online.target
+        ConditionPathExists=!/usr/local/bin/geesefs
+        Before=zincati.service
+        [Service]
+        ExecStart=/usr/bin/curl -sL -o /usr/local/bin/geesefs https://github.com/yandex-cloud/geesefs/releases/latest/download/geesefs-linux-amd64  
+        ExecStart=chmod 755 /usr/local/bin/geesefs
+        Type=oneshot
+        RemainAfterExit=yes
+        [Install]
+        WantedBy=multi-user.target
+    - name: install-sftp-users.path
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install sftp users from JSON
+        [Path]
+        PathExists=/srv/sftp_geesefs/install-sftp-users/trigger/install-sftp-users.json
+        [Install]
+        WantedBy=multi-user.target
+    - name: install-sftp-users.service
+      enabled: false
+      contents: |
+        [Unit]
+        Description=Install users
+        Wants=network-online.target
+        After=network-online.target
+        Before=zincati.service
+        [Service]
+        ExecStart=/usr/local/bin/install-sftp-users.bash
+        Type=oneshot
+        RemainAfterExit=yes
+        [Install]
+        WantedBy=multi-user.target
+    - name: empty-bucket@.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Empty bucket directly after reboot
+        Requires=geesefs@%i.service network-online.target install-geesefs.service
+        After=geesefs@%i.service network-online.target install-geesefs.service
+        Before=zincati.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        User=%i
+        Group=%i
+        ExecStart=find /srv/sftp_geesefs/chroot/%i/%i -mindepth 1 -xdev -delete
+        [Install]
+        WantedBy=multi-user.target
