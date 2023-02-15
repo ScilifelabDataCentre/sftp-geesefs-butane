@@ -91,3 +91,9 @@ sudo systemctl disable empty-bucket@myuser1.service
 Reboots will for instance happen after an update by Zincati.
 Zincati can be configure by adjusting/adding configuration files under
 _/etc/zincati/config.d/_
+
+
+### Note about POSIX compliance
+
+Note that geesefs is not fully POSIX compliant. See [POSIX Compatibility Matrix](https://github.com/yandex-cloud/geesefs/tree/master#posix-compatibility-matrix)
+
