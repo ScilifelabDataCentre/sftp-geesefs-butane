@@ -8,6 +8,7 @@ s3_endpoint=$(cat ~/s3_endpoint)
 
 /usr/local/bin/geesefs --shared-config ~/.aws/credentials \
                        --endpoint "$s3_endpoint" \
+                       -f \
                        --uid $(id -u) \
                        --gid $(id -g) \
                        --log-file stderr \
@@ -18,5 +19,4 @@ s3_endpoint=$(cat ~/s3_endpoint)
                        --max-flushers 8 \
                        --max-parallel-parts 8 \
                        --part-sizes 100 \
-                       --log-file syslog \
                        "$s3_bucket_name" /srv/sftp_geesefs/chroot/$USER/$USER
