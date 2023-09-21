@@ -74,8 +74,7 @@ systemd:
         AssertFileNotEmpty=/home/%i/s3_endpoint
         AssertPathExists=/usr/local/bin/geesefs
         [Service]
-        Type=oneshot
-        RemainAfterExit=yes
+        Type=simple
         User=%i
         Group=%i
         ExecStart=/usr/local/bin/mount-geesefs.bash
